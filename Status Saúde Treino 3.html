@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Analisador de Treino — Limiar & Saúde</title>
+  <style>
+    :root{--bg:#0f1724;--card:#0b1220;--muted:#9aa4b2;--accent:#4cc9f0}
+    body{font-family:Inter, system-ui, -apple-system, sans-serif;background:linear-gradient(180deg,#061021 0%, #071226 100%);color:#e6eef6;margin:0;padding:24px}
+    .wrap{max-width:980px;margin:0 auto}
+    h1{font-size:20px;margin:0 0 12px}
+    .grid{display:grid;grid-template-columns:1fr 420px;gap:18px}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.03);padding:14px;border-radius:12px;box-shadow:0 6px 20px rgba(2,6,23,0.6)}
+    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+    input,select,textarea{width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit;font-size:14px}
+    .row{display:flex;gap:8px}
+    .small{width:120px}
+    button{background:var(--accent);border:none;padding:10px 12px;border-radius:10px;color:#022033;font-weight:600;cursor:pointer}
+    .muted{color:var(--muted);font-size:13px}
+    .result{margin-top:12px}
+    pre{white-space:pre-wrap;background:rgba(255,255,255,0.02);padding:10px;border-radius:8px}
+    .svgwrap{background:#02101a;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
+    .legend{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+    .legend span{display:inline-flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;background:rgba(255,255,255,0.02)}
+    .dot{width:16px;height:12px;border-radius:4px;display:inline-block}
+    footer{margin-top:14px;color:var(--muted);font-size:13px}
+    .warn{background:#3b1a1a;color:#ffdede;padding:8px;border-radius:8px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Analisador de Treino (Limiar de Lactato + Status Saúde)</h1>
+    <p class="muted">Preencha os dados de <strong>Status Saúde</strong>, informe o <strong>Limiar de Lactato (LTHR)</strong> e o treino proposto pelo técnico. O sistema gera zonas em % do LTHR (método: %LTHR) e sugere alternativas caso os dados de saúde indiquem baixa recuperação.</p>
+    <div class="grid">
+      <div class="card">
+        <form id="form">
+          <fieldset style="border:none;padding:0;margin:0">
+            <label>Sexo</label>
+            <select id="sexo"><option>Masculino</option><option>Feminino</option></select>
+
+            <label style="margin-top:8px">Idade</label>
+            <input id="idade" type="number" min="12" max="100" value="37" />
+
+            <label style="margin-top:8px">VFC (linha de base) — intervalo (ms) e média (ms)</label>
+            <div class="row" style="margin-bottom:8px">
+              <input id="vfc_min" type="number" placeholder="mín" />
+              <input id="vfc_max" type="number" placeholder="máx" />
+              <input id="vfc_mean" type="number" placeholder="média" />
+            </div>
+
+            <label>VFC atual (média em ms)</label>
+            <input id="vfc_current" type="number" placeholder="valor atual" />
+
+            <label style="margin-top:8px">Sono (HH:MM) — insira duração de cada estágio</label>
+            <div class="row" style="margin-bottom:8px">
+              <div style="flex:1"><label class="muted">Profundo</label><input id="sono_profundo" placeholder="HH:MM"/></div>
+              <div style="flex:1"><label class="muted">Leve</label><input id="sono_leve" placeholder="HH:MM"/></div>
+            </div>
+            <div class="row" style="margin-bottom:8px">
+              <div style="flex:1"><label class="muted">REM</label><input id="sono_rem" placeholder="HH:MM"/></div>
+              <div style="flex:1"><label class="muted">Acordado</label><input id="sono_acordado" placeholder="HH:MM"/></div>
+            </div>
+
+            <label style="margin-top:8px">Treino proposto pelo técnico (descreva séries, modal.)</label>
+            <textarea id="treino" rows="4" placeholder="Ex: 60min Ciclismo Z2, 30min Corrida Z3, 45min Musculação - força"></textarea>
+
+            <label style="margin-top:8px">Limiar de Lactato (LTHR) — em bpm</label>
+            <input id="lthr" type="number" placeholder="ex: 183" />
+
+            <div style="display:flex;gap:8px;margin-top:12px">
+              <button type="button" id="analisar">Analisar Status & Gerar Zonas</button>
+              <button type="button" id="resetar" style="background:#334155;color:#e6eef6">Resetar</button>
+            </div>
+
+            <div class="result" id="resultado"></div>
+
+          </fieldset>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2 style="margin-top:0">Visualização de Zonas (em % LTHR e bpm)</h2>
+        <div class="svgwrap">
+          <svg id="zonabar" width="380" height="90" viewBox="0 0 380 90" xmlns="http://www.w3.org/2000/svg"></svg>
+        </div>
+        <div class="legend" id="legend"></div>
+        <div style="margin-top:12px">
+          <h3 style="margin:6px 0">Resultado Rápido</h3>
+          <pre id="resumo">Nenhuma análise ainda.</pre>
+        </div>
+        <footer>
+          <strong>Observação:</strong> este app usa a metodologia de % LTHR (ex.: TrainingPeaks / Stryd variants). Existem outras formas (por %FC máx, %HRR, Zoladz). Ajuste conforme seu equipamento e protocolo de teste.
+        </footer>
+      </div>
+    </div>
+
+    <section style="margin-top:18px" class="card">
+      <h2 style="margin-top:0">Sugestões e Lógica</h2>
+      <p class="muted">Regras automáticas usadas para sugerir um treino alternativo (resumo):</p>
+      <ul class="muted">
+        <li>Se VFC atual estiver 15% ou mais abaixo da média de referência, ou sono total for menor que 6h, o treino é substituído por uma versão de menor intensidade (ex: Z1/Z2, volume reduzido) — heurística comum para evitar overreaching.</li>
+        <li>Se idade &gt; 65 ou sinais claros de baixa recuperação, o app sugere treino de recuperação ou sessão técnica leve.</li>
+        <li>As zonas são calculadas como percentuais do LTHR — o intervalo em bpm é arredondado.</li>
+      </ul>
+      <div class="muted" style="margin-top:8px">Disclaimer: Esta ferramenta fornece orientação geral. Não substitui avaliação de um médico ou profissional de educação física. Use com cautela.</div>
+    </section>
+  </div>
+
+  <script>
+    // Configuração das zonas em % do LTHR (método %LTHR usado aqui)
+    const ZONAS = [
+      {id:1,label:'Z1 Recuperação',minPct:0.65,maxPct:0.80,color:'#7dd3fc'},
+      {id:2,label:'Z2 Aeróbico',minPct:0.80,maxPct:0.90,color:'#60a5fa'},
+      {id:3,label:'Z3 Moderado',minPct:0.90,maxPct:1.00,color:'#818cf8'},
+      {id:4,label:'Z4 Limiar',minPct:1.00,maxPct:1.15,color:'#f97316'},
+      {id:5,label:'Z5 VO2máx',minPct:1.15,maxPct:1.30,color:'#ef4444'}
+    ];
+
+    function hhmmToMinutes(s){ if(!s) return 0; const parts=s.split(':'); if(parts.length<2) return 0; return parseInt(parts[0]||0)*60 + parseInt(parts[1]||0); }
+
+    function calcZones(lthr){
+      const zones = ZONAS.map(z=>({
+        ...z,
+        minBpm: Math.round(z.minPct * lthr),
+        maxBpm: Math.round(z.maxPct * lthr)
+      }));
+      return zones;
+    }
+
+    function drawBar(zones){
+      const svg = document.getElementById('zonabar');
+      while(svg.firstChild) svg.removeChild(svg.firstChild);
+      const width = 360; const height=60; const gap=8; const totalPct = zones.reduce((s,z)=>s+(z.maxPct-z.minPct),0);
+      let x=10;
+      zones.forEach((z,i)=>{
+        const pct=(z.maxPct - z.minPct)/totalPct; const w = Math.max(30, Math.round(pct*width));
+        const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+        rect.setAttribute('x',x);rect.setAttribute('y',12);rect.setAttribute('width',w);rect.setAttribute('height',36);
+        rect.setAttribute('rx',6);rect.setAttribute('fill',z.color);rect.setAttribute('opacity',0.95);
+        svg.appendChild(rect);
+        const txt = document.createElementNS('http://www.w3.org/2000/svg','text');
+        txt.setAttribute('x',x+8);txt.setAttribute('y',34);txt.setAttribute('fill','#02101a');txt.setAttribute('font-size','11');txt.setAttribute('font-weight','600');
+        txt.textContent = `${z.label} ${z.minBpm}-${z.maxBpm}bpm`;
+        svg.appendChild(txt);
+        x += w + 6;
+      });
+      svg.setAttribute('viewBox',`0 0 ${width+20} ${height}`);
+
+      // legend
+      const legend = document.getElementById('legend'); legend.innerHTML='';
+      zones.forEach(z=>{
+        const sp = document.createElement('span');
+        const d = document.createElement('i'); d.className='dot'; d.style.background=z.color; sp.appendChild(d);
+        const t = document.createElement('span'); t.textContent = `${z.label}: ${z.minBpm}-${z.maxBpm} bpm (${Math.round(z.minPct*100)}-${Math.round(z.maxPct*100)}% LTHR)`;
+        sp.appendChild(t);
+        legend.appendChild(sp);
+      });
+    }
+
+    function analyze(){
+      const sexo = document.getElementById('sexo').value;
+      const idade = parseInt(document.getElementById('idade').value)||0;
+      const vfc_min = parseFloat(document.getElementById('vfc_min').value)||0;
+      const vfc_max = parseFloat(document.getElementById('vfc_max').value)||0;
+      const vfc_mean = parseFloat(document.getElementById('vfc_mean').value)||0;
+      const vfc_current = parseFloat(document.getElementById('vfc_current').value)||0;
+      const sono_prof = hhmmToMinutes(document.getElementById('sono_profundo').value);
+      const sono_leve = hhmmToMinutes(document.getElementById('sono_leve').value);
+      const sono_rem = hhmmToMinutes(document.getElementById('sono_rem').value);
+      const sono_ac = hhmmToMinutes(document.getElementById('sono_acordado').value);
+      const treino = document.getElementById('treino').value || '(não informado)';
+      const lthr = parseFloat(document.getElementById('lthr').value);
+
+      if(!lthr || lthr <= 0){ document.getElementById('resultado').innerHTML = '<div class="warn">Informe um LTHR válido antes de analisar.</div>'; return; }
+
+      const zones = calcZones(lthr);
+      drawBar(zones);
+
+      // Compute sleep total (exclude 'acordado')
+      const sono_total = sono_prof + sono_leve + sono_rem; // minutos
+
+      // Heurística de recuperação
+      let issues = [];
+      if(vfc_mean>0 && vfc_current>0){
+        const pctDrop = (vfc_mean - vfc_current) / vfc_mean * 100;
+        if(pctDrop >= 15) issues.push(`VFC atual ${vfc_current}ms está ${pctDrop.toFixed(0)}% abaixo da média de referência (${vfc_mean}ms)`);
+      }
+      if(sono_total < 360) issues.push(`Sono total ${Math.floor(sono_total/60)}h${('0'+(sono_total%60)).slice(-2)} menor que 6h`);
+      if(idade >= 65) issues.push('Idade >= 65: recomenda-se cautela e supervisão médica/treinador para intensidades altas');
+
+      // Build suggestion
+      let suggestion = '';
+      if(issues.length){
+        // fixed: avoid using a literal newline inside single-quoted string which causes a syntax error
+        suggestion += 'Condições indicam RECUPERAÇÃO INCOMPLETA. Sugestão: reduzir intensidade e/ou volume — executar versão de baixa intensidade do treino:\n';
+        // transform proposed workout by downgrading zones in text
+        suggestion += adaptWorkoutToRecovery(treino, zones);
+      } else {
+        suggestion += 'Condições aparentemente OK para executar o treino proposto pelo técnico (baseado nas heurísticas automáticas).\nManter plano conforme descrito:\n' + treino;
+      }
+
+      // Summaries
+      const resumo = [];
+      resumo.push(`LTHR: ${lthr} bpm`);
+      resumo.push('Zonas (por %LTHR): ' + zones.map(z=>`${z.label} ${Math.round(z.minPct*100)}-${Math.round(z.maxPct*100)}%`).join(' | '));
+      resumo.push('\nAnálise rápida:');
+      if(issues.length) resumo.push(issues.join('\n'));
+      else resumo.push('Sem problemas detectados nas heurísticas de VFC/sono.');
+
+      document.getElementById('resumo').textContent = resumo.join('\n');
+
+      // Detailed output
+      const out = document.getElementById('resultado');
+      out.innerHTML = `<h3>Resultado detalhado</h3>` +
+        `<p><strong>Treino proposto:</strong> ${escapeHtml(treino)}</p>` +
+        `<p><strong>Sugestão:</strong><br><pre>${escapeHtml(suggestion)}</pre></p>` +
+        `<p><strong>Zonas em bpm:</strong></p>` +
+        zones.map(z=>`<div>${z.label}: ${z.minBpm} - ${z.maxBpm} bpm (${Math.round(z.minPct*100)}-${Math.round(z.maxPct*100)}% LTHR)</div>`).join('') +
+        `<p class="muted" style="margin-top:8px">Regra usada: se VFC atual ≤ 85% da média de referência OU sono < 6h → versão de recuperação (Z1/Z2) sugerida.</p>`;
+
+      // Also log data (could be extended to save/export)
+      console.log({sexo,idade,vfc_min,vfc_max,vfc_mean,vfc_current,sono_prof,sono_leve,sono_rem,sono_ac,treino,lthr});
+    }
+
+    function adaptWorkoutToRecovery(treinoText, zones){
+      // Simple transformation: replace intense zone targets (Z3/Z4/Z5) with Z1-Z2 equivalents and reduce volume by ~30%
+      let out = 'Versão de recuperação sugerida:\n';
+      // keep modalities but reduce intensity
+      const lines = treinoText.split('\n').filter(Boolean);
+      if(lines.length===0) lines.push(treinoText);
+      lines.forEach(line=>{
+        // attempt to replace mentions of Z3 Z4 Z5
+        let l = line.replace(/Z3|Z4|Z5|z3|z4|z5/g,'Z2');
+        // if mentions of VO2 or sprints, change to técnica leve
+        l = l.replace(/VO2|sprint|interval/ig,'técnica leve / mobilidade');
+        // reduce duration numbers (minutes/hours)
+        l = l.replace(/(\d+)\s*min/ig,(m, p1)=>{ return Math.max(10, Math.round(p1*0.7)) + ' min (reduzido)'; });
+        l = l.replace(/(\d+(?:\.\d+)?)\s*h/ig,(m,p1)=>{ const mins = Math.round(parseFloat(p1)*60*0.7); return Math.max(10, Math.round(mins)) + ' min (reduzido)'; });
+        out += ' - ' + l + '\n';
+      });
+      out += '\nFoco: recuperação ativa (Z1/Z2), hidratação e sono. Voltar a intensidades altas apenas se VFC e sono normalizarem.';
+      return out;
+    }
+
+    function escapeHtml(s){ return (s+'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    document.getElementById('analisar').addEventListener('click', analyze);
+    document.getElementById('resetar').addEventListener('click', ()=>{
+      document.getElementById('form').reset(); document.getElementById('resultado').innerHTML=''; document.getElementById('resumo').textContent='Nenhuma análise ainda.'; document.getElementById('legend').innerHTML=''; document.getElementById('zonabar').innerHTML='';
+    });
+
+    // small demo default
+    document.getElementById('lthr').value = '183';
+    document.getElementById('vfc_mean').value = '58';
+    document.getElementById('vfc_current').value = '45';
+    document.getElementById('treino').value = '60min Ciclismo Z2; 30min Corrida Z3; 45min Musculação - força';
+  </script>
+</body>
+</html>
