@@ -107,7 +107,7 @@
                             <span class="ml-2 text-gray-700">Ciclismo</span>
                         </label>
                         <label class="flex items-center">
-                            <input type="checkbox" name="modality" value="Corrida" class="form-checkbox h-4 w-4 text-blue-600 rounded">
+                            <input type="checkbox" name="modality" value="Corrida" class="form-checkbox h-4 w-4 text-blue-600 rounded" checked>
                             <span class="ml-2 text-gray-700">Corrida</span>
                         </label>
                         <label class="flex items-center">
@@ -228,7 +228,7 @@
 
             // Variáveis de Saída
             let suitabilityStatus = "Propício (Ótima Recuperação)";
-            let workoutSuggestion = proposedWorkout;
+            let workoutSuggestion = proposedWorkout; // Mantém o treino proposto por padrão
             let recoverySummary = "Sua recuperação parece estar excelente! O treino proposto é totalmente recomendado.";
             let restHours = 24; // Default
             let intensity = "Média"; // Estimativa inicial baseada no treino proposto padrão (seria ideal ter mais dados)
@@ -283,7 +283,7 @@
                 restHours = 24;
             }
 
-            // --- 4. Sugestão de Treino Alternativo/Ajustado ---
+            // --- 4. Sugestão de Treino Alternativo/Ajustado (Nova lógica baseada no original) ---
             if (suitabilityStatus.includes("NÃO PROPÍCIO")) {
                 const restWorkout = "Treino de Recuperação Ativa: 30-45 minutos de Ciclismo ou Natação em Zona 1 (muito leve), com foco na respiração e mobilidade. Sem esforços intensos.";
                 if (primaryModality === 'Musculação') {
@@ -294,7 +294,34 @@
                     workoutSuggestion = restWorkout;
                 }
             } else if (suitabilityStatus.includes("Moderadamente Propício")) {
-                workoutSuggestion = `Ajuste ao Treino Proposto: Reduza a intensidade e/ou o volume. Mantenha a parte de 60 minutos na Zona 3, mas corte os 10 tiros de 200m. Ou, troque por um treino de ${primaryModality} com 20% menos volume e na Zona 2 (aeróbica).`;
+                
+                let newWorkout = `Novo Treino Recomendado: Devido à fadiga moderada, ajuste o volume e intensidade do treino proposto.`;
+                
+                // Exemplo específico de ajuste para o treino padrão de corrida
+                if (proposedWorkout.includes("Corrida de 60 minutos em Zona 3 (limiar), seguida de 10 tiros de 200m em ritmo máximo.")) {
+                    newWorkout += ` Sugestão para o seu treino de corrida:
+                    \n\n**Aquececimento (15 min):** Leve em Zona 1/2.
+                    \n**Parte Principal (30 min):** Corrida contínua de **45 minutos** (reduzido de 60 min) em Zona **2** (Ritmo Confortável, reduzido de Zona 3).
+                    \n**Tiros (Reduzido):** Realizar apenas **6 tiros** (reduzido de 10) de 200m em ritmo forte (Zona 4/5), **não máximo**, com recuperação mais longa.
+                    \n**Desaquecimento (10 min):** Caminhada ou trote leve.
+                    \n\n**Objetivo:** Manter a capacidade aeróbica, mas com estresse muito menor no sistema nervoso central.`;
+                
+                } else if (primaryModality === 'Musculação') {
+                    newWorkout += ` Sugestão para o seu treino de musculação:
+                    \n\n**Foco em Volume:** Reduza o número de séries de 4 para **3 séries** por exercício.
+                    \n**Foco em Carga:** Mantenha a carga mais conservadora, evitando falha muscular. Reduza o peso em **10-15%** em exercícios compostos.
+                    \n**Duração:** Limite o tempo total de treino a **60 minutos**.`;
+                
+                } else {
+                    // Fallback para sugestão proporcional genérica em formato de novo treino
+                    newWorkout += ` Recomendamos reduzir o volume ou a duração em cerca de **25-40%** e focar em intensidade **moderada** (Zona 2/3). Evite esforços máximos.`;
+                }
+
+                workoutSuggestion = newWorkout;
+
+            } else {
+                // Condição Propício: Confirmação do treino original
+                workoutSuggestion = `Treino Confirmado: Sua recuperação é ótima. Prossiga com o treino proposto pelo técnico, mantendo foco na intensidade e execução. Treino Proposto: "${proposedWorkout}"`;
             }
 
             // --- 5. Sugestão de Nutrição ---
