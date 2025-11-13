@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analisador de Condição Física e Treino</title>
+    <!-- Carrega o Tailwind CSS para estilização responsiva -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Define a fonte Inter como padrão para melhor legibilidade */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7fafc;
+        }
+        .card {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+        }
+        .result-box {
+            border-left: 4px solid;
+            padding-left: 1rem;
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-8">
+
+    <div class="max-w-4xl mx-auto">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-extrabold text-blue-800 mb-2">Análise de Recuperação Atleta</h1>
+            <p class="text-gray-600">Insira seus dados para uma análise de VFC e Sono.</p>
+        </header>
+
+        <!-- Formulário de Entrada de Dados -->
+        <div id="input-form" class="bg-white p-6 md:p-8 rounded-xl card mb-10">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-6">Dados do Atleta e Treino</h2>
+            
+            <form id="dataForm" onsubmit="event.preventDefault(); analyzeData();">
+                
+                <!-- Dados Básicos -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <label for="gender" class="block text-sm font-medium text-gray-700">Gênero</label>
+                        <select id="gender" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                            <option value="Feminino">Feminino</option>
+                            <option value="Masculino">Masculino</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="age" class="block text-sm font-medium text-gray-700">Idade (anos)</label>
+                        <input type="number" id="age" value="30" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                    </div>
+                </div>
+
+                <!-- VFC (Variabilidade da Frequência Cardíaca) -->
+                <h3 class="text-lg font-medium text-gray-800 mb-3 border-b pb-1">VFC (rMSSD em ms)</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div>
+                        <label for="vfc_base_min" class="block text-sm font-medium text-gray-700">Linha Base Mínimo</label>
+                        <input type="number" id="vfc_base_min" value="50" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                    </div>
+                    <div>
+                        <label for="vfc_base_max" class="block text-sm font-medium text-gray-700">Linha Base Máximo</label>
+                        <input type="number" id="vfc_base_max" value="70" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                    </div>
+                    <div>
+                        <label for="vfc_avg_7d" class="block text-sm font-medium text-gray-700">Média 7 Dias</label>
+                        <input type="number" id="vfc_avg_7d" value="62" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                    </div>
+                    <div>
+                        <label for="vfc_last_night" class="block text-sm font-medium text-gray-700">Média Última Noite</label>
+                        <input type="number" id="vfc_last_night" value="58" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                    </div>
+                </div>
+
+                <!-- Sono (em HH:MM) -->
+                <h3 class="text-lg font-medium text-gray-800 mb-3 border-b pb-1">Sono (HH:MM)</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div class="flex flex-col">
+                        <label for="sleep_deep" class="text-sm font-medium text-gray-700">Profundo</label>
+                        <input type="text" id="sleep_deep" value="01:15" placeholder="HH:MM" required pattern="\d{2}:\d{2}" class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                    </div>
+                    <div class="flex flex-col">
+                        <label for="sleep_light" class="text-sm font-medium text-gray-700">Leve</label>
+                        <input type="text" id="sleep_light" value="04:00" placeholder="HH:MM" required pattern="\d{2}:\d{2}" class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                    </div>
+                    <div class="flex flex-col">
+                        <label for="sleep_rem" class="text-sm font-medium text-gray-700">REM</label>
+                        <input type="text" id="sleep_rem" value="01:30" placeholder="HH:MM" required pattern="\d{2}:\d{2}" class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                    </div>
+                    <div class="flex flex-col">
+                        <label for="sleep_awake" class="text-sm font-medium text-gray-700">Acordado</label>
+                        <input type="text" id="sleep_awake" value="00:30" placeholder="HH:MM" required pattern="\d{2}:\d{2}" class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                    </div>
+                </div>
+
+                <!-- Modalidades de Treino e Proposto -->
+                <h3 class="text-lg font-medium text-gray-800 mb-3 border-b pb-1">Treino</h3>
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Modalidades Selecionadas:</label>
+                    <div class="flex flex-wrap gap-4">
+                        <label class="flex items-center">
+                            <input type="checkbox" name="modality" value="Ciclismo" class="form-checkbox h-4 w-4 text-blue-600 rounded">
+                            <span class="ml-2 text-gray-700">Ciclismo</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" name="modality" value="Corrida" class="form-checkbox h-4 w-4 text-blue-600 rounded">
+                            <span class="ml-2 text-gray-700">Corrida</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" name="modality" value="Natação" class="form-checkbox h-4 w-4 text-blue-600 rounded">
+                            <span class="ml-2 text-gray-700">Natação</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" name="modality" value="Musculação" class="form-checkbox h-4 w-4 text-blue-600 rounded">
+                            <span class="ml-2 text-gray-700">Musculação</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="proposed_workout" class="block text-sm font-medium text-gray-700">Treino Proposto pelo Técnico (Descrição Detalhada)</label>
+                    <textarea id="proposed_workout" rows="3" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">Corrida de 60 minutos em Zona 3 (limiar), seguida de 10 tiros de 200m em ritmo máximo.</textarea>
+                </div>
+
+                <button type="submit" class="mt-8 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow-lg transition duration-150 ease-in-out">
+                    Analisar Condição Física
+                </button>
+            </form>
+        </div>
+
+        <!-- Resultados da Análise -->
+        <div id="results" class="bg-white p-6 md:p-8 rounded-xl card hidden">
+            <h2 class="text-3xl font-bold text-green-700 mb-6 border-b pb-3">Resultados da Análise</h2>
+            
+            <div class="space-y-6">
+                
+                <!-- Condição Física -->
+                <div>
+                    <h3 class="text-xl font-semibold text-gray-800 mb-2">Condições para o Treino Proposto:</h3>
+                    <p id="fitness_suitability" class="text-lg font-medium p-3 rounded-lg result-box"></p>
+                    <p id="recovery_summary" class="text-sm text-gray-600 mt-2"></p>
+                </div>
+
+                <!-- Treino Sugerido -->
+                <div>
+                    <h3 class="text-xl font-semibold text-gray-800 mb-2">Treino Sugerido (ou Alternativo):</h3>
+                    <p id="suggested_workout" class="p-3 rounded-lg bg-yellow-50 text-yellow-800 border-yellow-500 result-box"></p>
+                </div>
+
+                <!-- Sugestão de Alimentação -->
+                <div>
+                    <h3 class="text-xl font-semibold text-gray-800 mb-2">Sugestão de Alimentação:</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="p-4 bg-green-50 rounded-lg border-green-500 result-box">
+                            <h4 class="font-bold text-green-800">PRÉ-TREINO</h4>
+                            <p id="nutri_pre" class="text-sm text-gray-700 mt-1"></p>
+                        </div>
+                        <div class="p-4 bg-blue-50 rounded-lg border-blue-500 result-box">
+                            <h4 class="font-bold text-blue-800">DURANTE</h4>
+                            <p id="nutri_during" class="text-sm text-gray-700 mt-1"></p>
+                        </div>
+                        <div class="p-4 bg-red-50 rounded-lg border-red-500 result-box">
+                            <h4 class="font-bold text-red-800">PÓS-TREINO</h4>
+                            <p id="nutri_post" class="text-sm text-gray-700 mt-1"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Descanso Sugerido -->
+                <div>
+                    <h3 class="text-xl font-semibold text-gray-800 mb-2">Descanso Sugerido (Próximo Treino):</h3>
+                    <p id="rest_suggestion" class="text-lg font-medium p-3 rounded-lg bg-indigo-50 text-indigo-800 border-indigo-500 result-box"></p>
+                </div>
+                
+                <!-- Fonte da Análise Adicionada Aqui -->
+                <div class="pt-6 mt-6 border-t border-gray-200">
+                    <h3 class="text-base font-semibold text-gray-700 mb-2">Fonte da Análise:</h3>
+                    <p class="text-xs text-gray-500">
+                        A lógica de análise é baseada em princípios fundamentais da Fisiologia do Exercício e Ciência do Esporte, incluindo:
+                        <ul class="list-disc list-inside mt-1 ml-4 space-y-1">
+                            <li>**VFC:** Uso da queda da VFC em relação à linha de base/média de 7 dias como indicador primário de estresse fisiológico (fadiga).</li>
+                            <li>**Sono:** Uso da duração total e da proporção de sono restaurador (REM/Profundo) para avaliar a recuperação.</li>
+                            <li>**Nutrição:** Diretrizes gerais de Nutrição Esportiva para otimizar energia e reparo muscular (proporção Carboidratos:Proteínas no pós-treino).</li>
+                            <li>**Aviso:** Esta é uma análise simulada e não substitui a avaliação de um profissional de saúde, médico ou técnico esportivo.</li>
+                        </ul>
+                    </p>
+                </div>
+                
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Função utilitária para converter HH:MM para minutos
+        function timeToMinutes(timeStr) {
+            const parts = timeStr.split(':');
+            if (parts.length !== 2) return 0;
+            const hours = parseInt(parts[0]) || 0;
+            const minutes = parseInt(parts[1]) || 0;
+            return (hours * 60) + minutes;
+        }
+
+        // Função principal para análise de dados
+        function analyzeData() {
+            // 1. Coletar e Parsear Dados
+            const vfcBaseMin = parseFloat(document.getElementById('vfc_base_min').value);
+            const vfcBaseMax = parseFloat(document.getElementById('vfc_base_max').value);
+            const vfcAvg7D = parseFloat(document.getElementById('vfc_avg_7d').value);
+            const vfcLastNight = parseFloat(document.getElementById('vfc_last_night').value);
+            const proposedWorkout = document.getElementById('proposed_workout').value.trim();
+            const age = parseInt(document.getElementById('age').value);
+
+            const modalities = Array.from(document.querySelectorAll('input[name="modality"]:checked')).map(cb => cb.value);
+            const primaryModality = modalities.length > 0 ? modalities[0] : 'Geral';
+            
+            // Conversão de Sono para minutos
+            const sleepDeep = timeToMinutes(document.getElementById('sleep_deep').value);
+            const sleepLight = timeToMinutes(document.getElementById('sleep_light').value);
+            const sleepRem = timeToMinutes(document.getElementById('sleep_rem').value);
+            const sleepAwake = timeToMinutes(document.getElementById('sleep_awake').value);
+            const totalSleepTime = sleepDeep + sleepLight + sleepRem; // Tempo total de sono, excluindo acordado para cálculo de %
+            const totalTimeInBed = totalSleepTime + sleepAwake;
+
+            // Variáveis de Saída
+            let suitabilityStatus = "Propício (Ótima Recuperação)";
+            let workoutSuggestion = proposedWorkout;
+            let recoverySummary = "Sua recuperação parece estar excelente! O treino proposto é totalmente recomendado.";
+            let restHours = 24; // Default
+            let intensity = "Média"; // Estimativa inicial baseada no treino proposto padrão (seria ideal ter mais dados)
+
+            // --- 2. Lógica de Análise de Recuperação (VFC e Sono) ---
+            let recoveryScore = 0; // Score de 0 (ótimo) a 10 (péssimo)
+
+            // A. Análise da VFC
+            const vfcDrop = vfcAvg7D - vfcLastNight;
+            
+            if (vfcLastNight < vfcBaseMin || vfcLastNight < (vfcAvg7D * 0.9)) { // VFC abaixo da linha de base OU queda > 10% da média de 7 dias
+                recoveryScore += 5;
+                recoverySummary = "A VFC da última noite está significativamente baixa. Isso sugere que seu sistema nervoso autônomo está sob estresse (doença, fadiga ou alta carga de treino).";
+            } else if (vfcDrop >= 5) { // Queda moderada (5ms ou mais)
+                recoveryScore += 2;
+                recoverySummary = "Houve uma queda moderada na VFC em relação à média de 7 dias, indicando que seu corpo pode precisar de um esforço reduzido.";
+            }
+
+            // B. Análise do Sono
+            const targetSleepHours = 8; // Meta comum de sono em horas
+            const targetTotalMinutes = targetSleepHours * 60;
+            const sleepRatio = totalSleepTime / targetTotalMinutes;
+            const deepRemRatio = (sleepDeep + sleepRem) / totalSleepTime;
+            
+            // 1. Duração total do sono (abaixo de 6h ou 360 minutos é ruim)
+            if (totalSleepTime < 360) {
+                recoveryScore += 3;
+                recoverySummary += " A duração total do seu sono foi muito curta (< 6h).";
+            } else if (sleepRatio < 0.875) { // Abaixo de 7h (87.5% de 8h)
+                recoveryScore += 1;
+            }
+
+            // 2. Qualidade do Sono (Deep + REM - idealmente > 25% do total)
+            if (deepRemRatio < 0.20) { // Menos de 20% de sono restaurador
+                recoveryScore += 2;
+                recoverySummary += " A proporção de sono profundo e REM (restaurador) foi baixa, afetando a qualidade da recuperação.";
+            }
+
+            // --- 3. Determinar Recomendação Final ---
+
+            if (recoveryScore >= 5) {
+                suitabilityStatus = "NÃO PROPÍCIO (Fadiga Elevada)";
+                intensity = "Baixa";
+                restHours = 48;
+            } else if (recoveryScore >= 2) {
+                suitabilityStatus = "Moderadamente Propício (Cautela)";
+                intensity = "Moderada";
+                restHours = 36;
+            } else {
+                suitabilityStatus = "Propício (Ótima Recuperação)";
+                intensity = "Alta";
+                restHours = 24;
+            }
+
+            // --- 4. Sugestão de Treino Alternativo/Ajustado ---
+            if (suitabilityStatus.includes("NÃO PROPÍCIO")) {
+                const restWorkout = "Treino de Recuperação Ativa: 30-45 minutos de Ciclismo ou Natação em Zona 1 (muito leve), com foco na respiração e mobilidade. Sem esforços intensos.";
+                if (primaryModality === 'Musculação') {
+                    workoutSuggestion = restWorkout + " Foco em mobilidade e alongamento, sem carga.";
+                } else if (primaryModality === 'Corrida') {
+                    workoutSuggestion = restWorkout + " Trocar a corrida por caminhada leve ou 30 minutos de yoga/mobilidade.";
+                } else {
+                    workoutSuggestion = restWorkout;
+                }
+            } else if (suitabilityStatus.includes("Moderadamente Propício")) {
+                workoutSuggestion = `Ajuste ao Treino Proposto: Reduza a intensidade e/ou o volume. Mantenha a parte de 60 minutos na Zona 3, mas corte os 10 tiros de 200m. Ou, troque por um treino de ${primaryModality} com 20% menos volume e na Zona 2 (aeróbica).`;
+            }
+
+            // --- 5. Sugestão de Nutrição ---
+            let nutriPre = "Foco em carboidratos de rápida absorção (ex: banana, torrada com geleia, gel de carboidrato). Pequena quantidade de proteína se o treino for longo.";
+            let nutriDuring = "Hidratação constante com água. Para treinos > 60 minutos, use bebida isotônica ou gel/gomas de carboidrato (30-60g de carboidrato por hora).";
+            let nutriPost = "Janela de 30-60 minutos: Carboidratos e Proteínas em proporção de 3:1 ou 4:1 (ex: shake de proteína + fruta, iogurte com granola, sanduíche de atum).";
+
+            if (primaryModality === 'Musculação') {
+                nutriPre = "Carboidrato para energia e proteína (ex: iogurte e fruta). Evitar gorduras em excesso.";
+                nutriPost = "Prioridade na proteína (whey protein, ovos, frango) junto com carboidratos para repor glicogênio (arroz, batata).";
+            } else if (primaryModality === 'Natação') {
+                nutriDuring = "Hidratação com água ou isotônico, se o treino for muito longo. Atenção à temperatura da água.";
+            }
+
+            // Se o treino for muito leve/recuperação
+            if (intensity === 'Baixa') {
+                nutriPre = "Hidratação e um pequeno carboidrato (ex: fruta). Não há necessidade de grandes refeições.";
+                nutriDuring = "Apenas água.";
+                nutriPost = "Refeição balanceada normal. A reposição é menos crítica para treinos de baixa intensidade.";
+            }
+
+            // --- 6. Atualizar a Interface do Usuário ---
+
+            // Condição Física
+            document.getElementById('fitness_suitability').textContent = suitabilityStatus;
+            document.getElementById('recovery_summary').textContent = `Recuperação: VFC da Última Noite (${vfcLastNight}ms vs. Média 7D ${vfcAvg7D}ms, Linha Base ${vfcBaseMin}-${vfcBaseMax}ms). Sono Total: ${Math.floor(totalSleepTime/60)}h${totalSleepTime%60}m. Score de Fadiga: ${recoveryScore}/10.`;
+            
+            const suitabilityElement = document.getElementById('fitness_suitability');
+            suitabilityElement.classList.remove('bg-green-50', 'bg-yellow-50', 'bg-red-50', 'border-green-500', 'border-yellow-500', 'border-red-500', 'text-green-800', 'text-yellow-800', 'text-red-800');
+            
+            if (suitabilityStatus.includes("NÃO PROPÍCIO")) {
+                suitabilityElement.classList.add('bg-red-50', 'text-red-800', 'border-red-500');
+            } else if (suitabilityStatus.includes("Moderadamente Propício")) {
+                suitabilityElement.classList.add('bg-yellow-50', 'text-yellow-800', 'border-yellow-500');
+            } else {
+                suitabilityElement.classList.add('bg-green-50', 'text-green-800', 'border-green-500');
+            }
+            
+            // Sugestão de Treino
+            document.getElementById('suggested_workout').textContent = workoutSuggestion;
+
+            // Nutrição
+            document.getElementById('nutri_pre').textContent = nutriPre;
+            document.getElementById('nutri_during').textContent = nutriDuring;
+            document.getElementById('nutri_post').textContent = nutriPost;
+
+            // Descanso
+            document.getElementById('rest_suggestion').textContent = `${restHours} horas. ${restHours > 24 ? 'Recomendamos um dia completo de descanso ou treino de mobilidade.' : 'Pode treinar no dia seguinte com base na sua rotina.'}`;
+
+
+            document.getElementById('results').classList.remove('hidden');
+            document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+
+</body>
+</html>
